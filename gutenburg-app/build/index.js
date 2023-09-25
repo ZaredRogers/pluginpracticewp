@@ -50,6 +50,16 @@ module.exports = window["wp"]["element"];
 
 module.exports = window["wp"]["htmlEntities"];
 
+/***/ }),
+
+/***/ "@wordpress/notices":
+/*!*********************************!*\
+  !*** external ["wp","notices"] ***!
+  \*********************************/
+/***/ (function(module) {
+
+module.exports = window["wp"]["notices"];
+
 /***/ })
 
 /******/ 	});
@@ -143,6 +153,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _wordpress_html_entities__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_wordpress_html_entities__WEBPACK_IMPORTED_MODULE_3__);
 /* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @wordpress/components */ "@wordpress/components");
 /* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var _wordpress_notices__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @wordpress/notices */ "@wordpress/notices");
+/* harmony import */ var _wordpress_notices__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(_wordpress_notices__WEBPACK_IMPORTED_MODULE_5__);
+
 
 
 
@@ -298,6 +311,23 @@ function CreatePageButton() {
     onSaveFinished: closeModal
   })));
 }
+function Notifications() {
+  const notices = (0,_wordpress_data__WEBPACK_IMPORTED_MODULE_1__.useSelect)(select => select(_wordpress_notices__WEBPACK_IMPORTED_MODULE_5__.store).getNotices(), []);
+  const {
+    removeNotice
+  } = (0,_wordpress_data__WEBPACK_IMPORTED_MODULE_1__.useDispatch)(_wordpress_notices__WEBPACK_IMPORTED_MODULE_5__.store);
+  const snackbarNotices = notices.filter(_ref6 => {
+    let {
+      type
+    } = _ref6;
+    return type === 'snackbar';
+  });
+  return (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.SnackbarList, {
+    notices: snackbarNotices,
+    className: "components-editor-notices__snackbar",
+    onRemove: removeNotice
+  });
+}
 function MyFirstApp() {
   const [searchTerm, setSearchTerm] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const query = {};
@@ -319,16 +349,65 @@ function MyFirstApp() {
     label: "Search Pages",
     value: searchTerm,
     onChange: setSearchTerm
-  }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(CreatePageButton, null)), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(PagesList, {
+  }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(CreatePageButton, null), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(Notifications, null)), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(PagesList, {
     hasResolved: hasResolved,
     pages: pages
   }));
 }
-function PagesList(_ref6) {
+function DeletePageButton(_ref7) {
+  let {
+    pageId
+  } = _ref7;
+  const {
+    createSuccessNotice,
+    createErrorNotice
+  } = (0,_wordpress_data__WEBPACK_IMPORTED_MODULE_1__.useDispatch)(_wordpress_notices__WEBPACK_IMPORTED_MODULE_5__.store);
+  // useSelect returns a list of selectors if you pass the store handle
+  // instead of a callback:
+  const {
+    getLastEntityDeleteError
+  } = (0,_wordpress_data__WEBPACK_IMPORTED_MODULE_1__.useSelect)(_wordpress_core_data__WEBPACK_IMPORTED_MODULE_2__.store);
+  const handleDelete = async () => {
+    const success = await deleteEntityRecord('postType', 'page', pageId);
+    if (success) {
+      // Tell the user the operation succeeded:
+      createSuccessNotice("The page was deleted!", {
+        type: 'snackbar'
+      });
+    } else {
+      // We use the selector directly to get the error at this point in time.
+      // Imagine we fetched the error like this:
+      //     const { lastError } = useSelect( function() { /* ... */ } );
+      // Then, lastError would be null inside of handleDelete.
+      // Why? Because we'd refer to the version of it that was computed
+      // before the handleDelete was even called.
+      const lastError = getLastEntityDeleteError('postType', 'page', pageId);
+      const message = (lastError?.message || 'There was an error.') + ' Please refresh the page and try again.';
+      // Tell the user how exactly the operation have failed:
+      createErrorNotice(message, {
+        type: 'snackbar'
+      });
+    }
+  };
+  const {
+    deleteEntityRecord
+  } = (0,_wordpress_data__WEBPACK_IMPORTED_MODULE_1__.useDispatch)(_wordpress_core_data__WEBPACK_IMPORTED_MODULE_2__.store);
+  const {
+    isDeleting
+  } = (0,_wordpress_data__WEBPACK_IMPORTED_MODULE_1__.useSelect)(select => ({
+    isDeleting: select(_wordpress_core_data__WEBPACK_IMPORTED_MODULE_2__.store).isDeletingEntityRecord('postType', 'page', pageId)
+  }), [pageId]);
+  return (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.Button, {
+    variant: "primary",
+    onClick: handleDelete,
+    disabled: isDeleting
+  }, isDeleting ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.Spinner, null), "Deleting...") : 'Delete');
+}
+function PagesList(_ref8) {
   let {
     hasResolved,
     pages
-  } = _ref6;
+  } = _ref8;
   if (!hasResolved) {
     return (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.Spinner, null);
   }
@@ -344,6 +423,8 @@ function PagesList(_ref6) {
   }, "Actions"))), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("tbody", null, pages?.map(page => (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("tr", {
     key: page.id
   }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("td", null, (0,_wordpress_html_entities__WEBPACK_IMPORTED_MODULE_3__.decodeEntities)(page.title.rendered)), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("td", null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(PageEditButton, {
+    pageId: page.id
+  }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(DeletePageButton, {
     pageId: page.id
   }))))));
 }
