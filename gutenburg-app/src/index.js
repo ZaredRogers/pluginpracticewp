@@ -4,6 +4,43 @@ import { decodeEntities } from '@wordpress/html-entities';
 import { SearchControl, Spinner, Button, TextControl, Modal } from '@wordpress/components';
 import { useState, render } from '@wordpress/element';
 
+export function CreatePageForm( { onCancel, onSaveFinished } ) {
+    const [title, setTitle] = useState();
+    const { lastError, isSaving } = useSelect(
+        ( select ) => ( {
+            lastError: select( coreDataStore )
+                .getLastEntitySaveError( 'postType', 'page' ),
+            isSaving: select( coreDataStore )
+                .isSavingEntityRecord( 'postType', 'page' ),
+        } ),
+        []
+    );
+ 
+    const { saveEntityRecord } = useDispatch( coreDataStore );
+    const handleSave = async () => {
+        const savedRecord = await saveEntityRecord(
+            'postType',
+            'page',
+            { title, status: 'publish' }
+        );
+        if ( savedRecord ) {
+            onSaveFinished();
+        }
+    };
+ 
+    return (
+        <PageForm
+            title={ title }
+            onChangeTitle={ setTitle }
+            hasEdits={ !!title }
+            onSave={ handleSave }
+            lastError={ lastError }
+            onCancel={ onCancel }
+            isSaving={ isSaving }
+        />
+    );
+}
+ 
 export function EditPageForm( { pageId, onCancel, onSaveFinished } ) {
     const { page, lastError, isSaving, hasEdits } = useSelect(
         ( select ) => ( {
@@ -12,7 +49,7 @@ export function EditPageForm( { pageId, onCancel, onSaveFinished } ) {
             isSaving: select( coreDataStore ).isSavingEntityRecord( 'postType', 'page', pageId ),
             hasEdits: select( coreDataStore ).hasEditsForEntityRecord( 'postType', 'page', pageId ),
         } ),
-        [ pageId ]
+        [pageId]
     );
  
     const { saveEditedEntityRecord, editEntityRecord } = useDispatch( coreDataStore );
@@ -22,14 +59,28 @@ export function EditPageForm( { pageId, onCancel, onSaveFinished } ) {
             onSaveFinished();
         }
     };
-    const handleChange = ( title ) =>  editEntityRecord( 'postType', 'page', page.id, { title } );
+    const handleChange = ( title ) => editEntityRecord( 'postType', 'page', page.id, { title } );
  
+    return (
+        <PageForm
+            title={ page.title }
+            onChangeTitle={ handleChange }
+            hasEdits={ hasEdits }
+            lastError={ lastError }
+            isSaving={ isSaving }
+            onCancel={ onCancel }
+            onSave={ handleSave }
+        />
+    );
+}
+ 
+export function PageForm( { title, onChangeTitle, hasEdits, lastError, isSaving, onCancel, onSave } ) {
     return (
         <div className="my-gutenberg-form">
             <TextControl
                 label="Page title:"
-                value={ page.title }
-                onChange={ handleChange }
+                value={ title }
+                onChange={ onChangeTitle }
             />
             { lastError ? (
                 <div className="form-error">Error: { lastError.message }</div>
@@ -38,9 +89,9 @@ export function EditPageForm( { pageId, onCancel, onSaveFinished } ) {
             ) }
             <div className="form-buttons">
                 <Button
-                    onClick={ handleSave }
+                    onClick={ onSave }
                     variant="primary"
-                    disabled={ ! hasEdits || isSaving }
+                    disabled={ !hasEdits || isSaving }
                 >
                     { isSaving ? (
                         <>
@@ -93,6 +144,28 @@ export function VanillaReactForm({ initialTitle }) {
     );
 }
 
+function CreatePageButton() {
+    const [isOpen, setOpen] = useState( false );
+    const openModal = () => setOpen( true );
+    const closeModal = () => setOpen( false );
+    return (
+        <>
+            <Button onClick={ openModal } variant="primary">
+                Create a new page
+            </Button>
+            { isOpen && (
+                <Modal onRequestClose={ closeModal } title="Create a new page">
+                    <CreatePageForm
+                        onCancel={ closeModal }
+                        onSaveFinished={ closeModal }
+                    />
+                </Modal>
+            ) }
+        </>
+    );
+}
+
+
 function MyFirstApp() {
     const [searchTerm, setSearchTerm] = useState( '' );
     const query = {}
@@ -112,11 +185,14 @@ function MyFirstApp() {
 
     return (
         <div>
+            <div className="list-controls">
             <SearchControl
                 label="Search Pages"
                 value={ searchTerm }
                 onChange={ setSearchTerm }
             />
+            <CreatePageButton />
+            </div>
             <PagesList hasResolved={ hasResolved } pages={ pages } />
         </div>
     )
